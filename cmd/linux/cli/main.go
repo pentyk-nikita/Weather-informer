@@ -1,18 +1,21 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
-	"github.com/pentyk-nikita/Weather-informer/internal/pkg/app/cli"
+	"github.com/pentyk-nikita/weather_info/internal/pkg/app/cli"
+	"github.com/pentyk-nikita/weather_info/pkg/logger"
 )
 
 func main() {
-	app := cli.New()
+	l := logger.New()
+	app := cli.New(l)
+
 	err := app.Run()
 	if err != nil {
-		fmt.Printf("Some error - %s\n", err.Error())
+		l.Error("Some error", err)
 		os.Exit(1)
 	}
+
 	os.Exit(0)
 }

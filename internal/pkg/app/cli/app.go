@@ -8,19 +8,31 @@ import (
 	"net/http"
 )
 
-type cliApp struct{}
+type Logger interface {
+	Info(string)
+	Debug(string)
+	Error(string, error)
+}
 
-func New() *cliApp {
-	return &cliApp{}
+type cliApp struct {
+	l Logger
+}
+
+func New(l Logger) *cliApp {
+	return &cliApp{
+		l: l,
+	}
 }
 
 func (c *cliApp) Run() error {
 	type Current struct {
 		Temp float32 `json:"temperature_2m"`
 	}
+
 	type Response struct {
 		Curr Current `json:"current"`
 	}
+
 	var response Response
 
 	params := fmt.Sprintf(
@@ -30,26 +42,33 @@ func (c *cliApp) Run() error {
 	)
 
 	url := fmt.Sprintf("https://api.open-meteo.com/v1/forecast?%s", params)
+	c.l.Debug(fmt.Sprintf("url was generated success - %s", url))
 
 	resp, err := http.Get(url)
 	if err != nil {
-		customErr := errors.New("can't get weather data from openmeteo")
+		c.l.Error("can`t get weather data", err)
+		customErr := errors.New("can`t get weather data from openmeteo")
 		return errors.Join(customErr, err)
 	}
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			fmt.Printf("can't close body err - %s\n", err.Error())
+			c.l.Error("can`t close body", err)
 		}
 	}()
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		customErr := errors.New("can't read data from response")
+		c.l.Error("can`t read data from body", err)
+		customErr := errors.New("can`t read data from response")
 		return errors.Join(customErr, err)
 	}
 
+	c.l.Debug(fmt.Sprintf("data was readed successfuly size - %d",
+		len(data)))
+
 	if err := json.Unmarshal(data, &response); err != nil {
-		customErr := errors.New("can't unmarshal data from response")
+		c.l.Error("can`t unmarshal json data", err)
+		customErr := errors.New("can`t unmarshal data from response")
 		return errors.Join(customErr, err)
 	}
 
