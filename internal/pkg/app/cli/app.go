@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/pentyk-nikita/Weather-informer/internal/domain/models"
 )
 
 type Logger interface {
@@ -15,6 +17,10 @@ type Logger interface {
 	Warn(string)
 }
 
+type WeatherInfo interface {
+	GetTemperature(float64, float64) models.TempInfo
+}
+
 type Cache interface {
 	Get(key string) ([]byte, bool)
 	Set(key string, data []byte) error
@@ -22,13 +28,15 @@ type Cache interface {
 
 type cliApp struct {
 	l     Logger
+	wi    WeatherInfo
 	cache Cache
 }
 
-func New(l Logger, cache Cache) *cliApp {
+func New(l Logger, cache Cache, wi WeatherInfo) *cliApp {
 	return &cliApp{
 		l:     l,
 		cache: cache,
+		wi:    wi,
 	}
 }
 
@@ -41,7 +49,7 @@ func (c *cliApp) Run() error {
 		Curr Current `json:"current"`
 	}
 
-	var response Response 
+	var response Response
 
 	cacheKey := fmt.Sprintf("weather_%.4f_%.4f", 53.6688, 23.8223)
 
@@ -105,6 +113,5 @@ func (c *cliApp) Run() error {
 		"Температура воздуха - %.2f градусов цельсия\n",
 		response.Curr.Temp,
 	)
-
 	return nil
 }
