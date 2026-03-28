@@ -9,6 +9,7 @@ var (
 	INFO  = "INFO"
 	DEBUG = "DEBUG"
 	ERROR = "ERROR"
+	WARN  = "WARN"
 )
 
 type logger struct{}
@@ -32,6 +33,10 @@ func (l *logger) Error(msg string, err error) {
 			msg+" err - "+err.Error(),
 		),
 	)
+}
+
+func (l *logger) Warn(msg string) {
+	fmt.Println(l.msg(WARN, msg))
 }
 
 func (l *logger) msg(level string, msg string) string {
