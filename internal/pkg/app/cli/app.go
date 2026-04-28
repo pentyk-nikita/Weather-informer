@@ -28,36 +28,35 @@ type Cache interface {
 }
 
 type cliApp struct {
-	l     Logger
-	wi    WeatherInfo
-	cache Cache
-	config config.Config
+	l      Logger
+	wi     WeatherInfo
+	cache  Cache
+	conf   config.Config
 }
 
-func New(l Logger, cache Cache, wi WeatherInfo, cfg config.Config) *cliApp { 
+func New(l Logger, cache Cache, wi WeatherInfo, c config.Config) *cliApp {
 	return &cliApp{
-		l:      l,
-		cache:  cache,
-		wi:     wi,
-		config: cfg, 
+		l:     l,
+		cache: cache,
+		wi:    wi,
+		conf:  c,
 	}
 }
 
 func (c *cliApp) Run() error {
-	type Current struct {
-		Temp float32 `json:"temperature_2m"`
-	}
+	lat := c.conf.L.Lat
+	long := c.conf.L.Long
 
-	type Response struct {
-		Curr Current `json:"current"`
-	}
-
-	var response Response
-
-	cacheKey := fmt.Sprintf("weather_%.4f_%.4f", 53.6688, 23.8223)
+	cacheKey := fmt.Sprintf("weather_%.4f_%.4f", lat, long)
 
 	if cachedData, found := c.cache.Get(cacheKey); found {
 		c.l.Debug("cache hit - using cached data")
+
+		var response struct {
+			Curr struct {
+				Temp float32 `json:"temperature_2m"`
+			} `json:"current"`
+		}
 
 		if err := json.Unmarshal(cachedData, &response); err != nil {
 			c.l.Error("can't unmarshal cached data", err)
@@ -72,49 +71,27 @@ func (c *cliApp) Run() error {
 
 	c.l.Debug("cache miss - fetching from API")
 
-	params := fmt.Sprintf(
-		"latitude=%f&longitude=%f&current=temperature_2m",
-		53.6688,
-		23.8223,
-	)
-
-	url := fmt.Sprintf("https://api.open-meteo.com/v1/forecast?%s", params)
-	c.l.Debug(fmt.Sprintf("url was generated success - %s", url))
-
-	resp, err := http.Get(url)
+	tempInfo, err := c.wi.GetTemperature(lat, long)
 	if err != nil {
-		c.l.Error("can't get weather data", err)
-		customErr := errors.New("can't get weather data from openmeteo")
-		return errors.Join(customErr, err)
-	}
-	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			c.l.Error("can't close body", err)
-		}
-	}()
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		c.l.Error("can't read data from body", err)
-		customErr := errors.New("can't read data from response")
-		return errors.Join(customErr, err)
+		c.l.Error("can't get temperature from provider", err)
+		return err
 	}
 
-	c.l.Debug(fmt.Sprintf("data was readed successfully size - %d", len(data)))
-
-	if err := c.cache.Set(cacheKey, data); err != nil {
+	cacheData := struct {
+		Current struct {
+			Temperature2m float32 `json:"temperature_2m"`
+		} `json:"current"`
+	}{}
+	cacheData.Current.Temperature2m = tempInfo.Temp
+	
+	jsonData, _ := json.Marshal(cacheData)
+	if err := c.cache.Set(cacheKey, jsonData); err != nil {
 		c.l.Warn(fmt.Sprintf("failed to save to cache: %v", err))
-	}
-
-	if err := json.Unmarshal(data, &response); err != nil {
-		c.l.Error("can't unmarshal json data", err)
-		customErr := errors.New("can't unmarshal data from response")
-		return errors.Join(customErr, err)
 	}
 
 	fmt.Printf(
 		"Температура воздуха - %.2f градусов цельсия\n",
-		response.Curr.Temp,
+		tempInfo.Temp,
 	)
 	return nil
 }
