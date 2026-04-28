@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/pentyk-nikita/Weather-informer/internal/domain/models"
+	"github.com/pentyk-nikita/Weather-informer/pkg/config"
 )
 
 type Logger interface {
@@ -30,13 +31,15 @@ type cliApp struct {
 	l     Logger
 	wi    WeatherInfo
 	cache Cache
+	config config.Config
 }
 
-func New(l Logger, cache Cache, wi WeatherInfo) *cliApp {
+func New(l Logger, cache Cache, wi WeatherInfo, cfg config.Config) *cliApp { 
 	return &cliApp{
-		l:     l,
-		cache: cache,
-		wi:    wi,
+		l:      l,
+		cache:  cache,
+		wi:     wi,
+		config: cfg, 
 	}
 }
 
