@@ -80,11 +80,9 @@ func (wi *weatherInfo) getWeatherInfo(lat, long float64) error {
 	return nil
 }
 
-func (wi *weatherInfo) GetTemperature(lat, long float64) models.TempInfo {
-	if !wi.isLoaded {
-		wi.getWeatherInfo(lat, long)
-	}
+func (wi *weatherInfo) GetTemperature(lat, long float64) (models.TempInfo, error) {
+	err := wi.getWeatherInfo(lat, long)
 	return models.TempInfo{
 		Temp: wi.c.Temp,
-	}
+	}, err
 }

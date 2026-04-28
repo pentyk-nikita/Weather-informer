@@ -10,6 +10,8 @@ import (
 	"github.com/pentyk-nikita/Weather-informer/pkg/cache"
 	"github.com/pentyk-nikita/Weather-informer/pkg/config"
 	"github.com/pentyk-nikita/Weather-informer/pkg/logger"
+
+	pogodaby "github.com/pentyk-nikita/Weather-informer/internal/adapters/pogoda_by"
 )
 
 func main() {
@@ -50,6 +52,8 @@ func getProvider(c config.Config, l cli.Logger) cli.WeatherInfo {
 	switch c.P.Type {
 	case "open-meteo":
 		wi = weather.New(l)
+	case "pogoda":
+		wi = pogodaby.New(l)
 	default:
 		wi = weather.New(l)
 	}

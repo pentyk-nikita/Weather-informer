@@ -19,7 +19,7 @@ type Logger interface {
 }
 
 type WeatherInfo interface {
-	GetTemperature(float64, float64) models.TempInfo
+	GetTemperature(float64, float64) (models.TempInfo, error)
 }
 
 type Cache interface {
